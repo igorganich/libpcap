@@ -112,6 +112,10 @@ netfilter_read_linux(pcap_t *handle, int max_packets, pcap_handler callback, u_c
 		 * platforms as well).
 		 */
 		do {
+			struct timeval tv;
+			tv.tv_sec = 5;  // 5 seconds timeout
+			tv.tv_usec = 0;
+			setsockopt(handle->fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
 			len = recv(handle->fd, handle->buffer, handle->bufsize, 0);
 			if (handle->break_loop) {
 				handle->break_loop = 0;
@@ -119,7 +123,7 @@ netfilter_read_linux(pcap_t *handle, int max_packets, pcap_handler callback, u_c
 			}
 			if (len == -1 && errno == ENOBUFS)
 				handlep->packets_nobufs++;
-		} while ((len == -1) && (errno == EINTR || errno == ENOBUFS));
+		} while ((len == -1) && (errno == EINTR || errno == ENOBUFS || errno == EWOULDBLOCK || errno == EAGAIN));
 
 		if (len < 0) {
 			pcapint_fmt_errmsg_for_errno(handle->errbuf,
